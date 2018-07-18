@@ -2,33 +2,14 @@
 import csv
 import os
 import random
-
+from glob import glob
 import click
 
-from . import cyclegan_datasets
+import cyclegan_datasets
 
 
-def create_list(foldername, fulldir=True, suffix=".jpg"):
-    """
-
-    :param foldername: The full path of the folder.
-    :param fulldir: Whether to return the full path or not.
-    :param suffix: Filter by suffix.
-
-    :return: The list of filenames in the folder with given suffix.
-
-    """
-    file_list_tmp = os.listdir(foldername)
-    file_list = []
-    if fulldir:
-        for item in file_list_tmp:
-            if item.endswith(suffix):
-                file_list.append(os.path.join(foldername, item))
-    else:
-        for item in file_list_tmp:
-            if item.endswith(suffix):
-                file_list.append(item)
-    return file_list
+def create_list(folder_name, mask='*.jp*g'):
+    return glob(folder_name + '/**/' + mask, recursive=True)
 
 
 @click.command()
@@ -50,10 +31,14 @@ def create_list(foldername, fulldir=True, suffix=".jpg"):
               help='Whether to shuffle images when creating the dataset.')
 def create_dataset(image_path_a, image_path_b,
                    dataset_name, do_shuffle):
-    list_a = create_list(image_path_a, True,
-                         cyclegan_datasets.DATASET_TO_IMAGETYPE[dataset_name])
-    list_b = create_list(image_path_b, True,
-                         cyclegan_datasets.DATASET_TO_IMAGETYPE[dataset_name])
+
+    list_a = create_list(image_path_a, cyclegan_datasets.DATASET_TO_IMAGETYPE[dataset_name])
+    list_b = create_list(image_path_b, cyclegan_datasets.DATASET_TO_IMAGETYPE[dataset_name])
+    if not do_shuffle and 'test' in dataset_name:
+        list_a = sorted(list_a)
+
+    print(len(list_a))
+    print('\n'.join(list_a))
 
     output_path = cyclegan_datasets.PATH_TO_CSV[dataset_name]
 
@@ -66,6 +51,7 @@ def create_dataset(image_path_a, image_path_b,
         ))
     if do_shuffle is True:
         random.shuffle(all_data_tuples)
+
     with open(output_path, 'w') as csv_file:
         csv_writer = csv.writer(csv_file)
         for data_tuple in enumerate(all_data_tuples):

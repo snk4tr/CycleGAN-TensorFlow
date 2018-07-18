@@ -1,9 +1,22 @@
+import os
+
 import tensorflow as tf
 
-from . import cyclegan_datasets
-from . import model
+import cyclegan_datasets
+import model
+from glob import glob
 
 
+def _load_good(path):
+    filename_queue = tf.train.string_input_producer(list(glob(os.path.join(path, "*.*"))))
+
+    image_reader = tf.WholeFileReader()
+    fname, image_file = image_reader.read(filename_queue)
+    img = tf.image.decode_jpeg(image_file)
+    return img, fname
+
+
+# DEPRECATED
 def _load_samples(csv_name, image_type):
     filename_queue = tf.train.string_input_producer(
         [csv_name])
@@ -19,7 +32,8 @@ def _load_samples(csv_name, image_type):
 
     file_contents_i = tf.read_file(filename_i)
     file_contents_j = tf.read_file(filename_j)
-    if image_type == '.jpg':
+
+    if 'jpg' in image_type or 'jp*g' in image_type:
         image_decoded_A = tf.image.decode_jpeg(
             file_contents_i, channels=model.IMG_CHANNELS)
         image_decoded_B = tf.image.decode_jpeg(
@@ -30,10 +44,10 @@ def _load_samples(csv_name, image_type):
         image_decoded_B = tf.image.decode_png(
             file_contents_j, channels=model.IMG_CHANNELS, dtype=tf.uint8)
 
-    return image_decoded_A, image_decoded_B
+    return image_decoded_A, image_decoded_B, filename_i
 
 
-def load_data(dataset_name, image_size_before_crop,
+def load_data(dataset_name, image_size_before_crop, config,
               do_shuffle=True, do_flipping=False):
     """
 
@@ -49,8 +63,10 @@ def load_data(dataset_name, image_size_before_crop,
 
     csv_name = cyclegan_datasets.PATH_TO_CSV[dataset_name]
 
-    image_i, image_j = _load_samples(
-        csv_name, cyclegan_datasets.DATASET_TO_IMAGETYPE[dataset_name])
+    # image_i, image_j, files  = _load_samples(
+    #     csv_name, cyclegan_datasets.DATASET_TO_IMAGETYPE[dataset_name])
+    image_i, fnameA = _load_good(config['path_domainA'])
+    image_j, fnameB = _load_good(config['path_domainB'])
     inputs = {
         'image_i': image_i,
         'image_j': image_j
@@ -82,4 +98,4 @@ def load_data(dataset_name, image_size_before_crop,
         inputs['images_i'], inputs['images_j'] = tf.train.batch(
             [inputs['image_i'], inputs['image_j']], 1)
 
-    return inputs
+    return inputs, fnameA, fnameB
