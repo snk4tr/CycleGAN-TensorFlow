@@ -7,6 +7,7 @@ import data_loader, losses, model
 
 from scipy.misc import imsave
 from tqdm import tqdm
+from tensorflow.python import debug as tf_debug
 
 
 slim = tf.contrib.slim
@@ -16,22 +17,20 @@ class CycleGAN:
     def __init__(self, pool_size, lambda_a,
                  lambda_b, output_root_dir, to_restore,
                  base_lr, max_step, network_version,
-                 dataset_name, do_flipping, skip, epoch, config):
+                 dataset_name, skip, epoch, config):
 
         self._pool_size = pool_size
-        self._size_before_crop = 286
         self._lambda_a = lambda_a
         self._lambda_b = lambda_b
         self._output_dir = output_root_dir
         self._images_dir = os.path.join(self._output_dir, 'imgs')
-        self._num_imgs_to_save = 4
+        self._num_imgs_to_save = 8
         self._to_restore = to_restore
         self._base_lr = base_lr
         self._max_step = max_step
         self._network_version = network_version
-        self._dataset_name = dataset_name
+        self.dataset_name = dataset_name
         self._checkpoint_dir = os.path.join(self._output_dir, 'checkpoints')
-        self._do_flipping = do_flipping
         self._skip = skip
         self._epoch_description = epoch
 
@@ -58,12 +57,15 @@ class CycleGAN:
         self.fake_A/self.fake_B to corresponding generator.
         This is use to calculate cyclic loss
         """
-        self.inputs, _, _ = data_loader.load_data(
-            self._dataset_name, self._size_before_crop, self.config,
-            True, self._do_flipping)
+        # self.inputs = data_loader.prepare(
+        #     self.dataset_name, self.size, self.config,
+        #     True, self._do_flipping)
+        #
+        # self.input_a = self.inputs['images_i']
+        # self.input_b = self.inputs['images_j']
 
-        self.input_a = self.inputs['images_i']
-        self.input_b = self.inputs['images_j']
+        self.input_a, self.input_b = data_loader.get_data(self.config)
+
         self.fake_pool_A = tf.placeholder(
             tf.float32, [
                 None,
@@ -235,41 +237,29 @@ class CycleGAN:
                 return fake
 
     def train(self):
-        """Training Function."""
-        # Load Dataset from the dataset folder
-        # self.inputs, _, _ = data_loader.load_data(
-        #     self._dataset_name, self._size_before_crop, self.config,
-        #     True, self._do_flipping)
-
-        # Build the network
         self.model_setup()
-
-        # Loss function calculations
         self.compute_losses()
 
-        # Initializing the global variables
         init = (tf.global_variables_initializer(),
                 tf.local_variables_initializer())
         saver = tf.train.Saver(max_to_keep=21)
 
-        max_images = cyclegan_datasets.DATASET_TO_SIZES[self._dataset_name]
+        max_images = cyclegan_datasets.DATASET_TO_SIZES[self.dataset_name]
         tf_config = tf.ConfigProto(
             # gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5),
             device_count={'GPU': 1}
         )
 
         with tf.Session(config=tf_config) as sess:
+            sess = tf_debug.LocalCLIDebugWrapperSession(sess)
             sess.run(init)
 
-            # Restore the model to run the model from last checkpoint
             if self._to_restore:
                 chkpt_fname = tf.train.latest_checkpoint(self._checkpoint_dir)
                 saver.restore(sess, chkpt_fname)
 
             writer = tf.summary.FileWriter(self._output_dir)
-
-            if not os.path.exists(self._output_dir):
-                os.makedirs(self._output_dir)
+            os.makedirs(self._output_dir, exist_ok=True)
 
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(coord=coord)
@@ -281,7 +271,6 @@ class CycleGAN:
                           bar_format='{desc}|{bar}|{percentage:3.0f}% ETA: {remaining}')
             for epoch in pr_bar:
                 pr_bar.set_description('Epoch %d/%d' % (epoch, self._max_step))
-                # print("In the epoch ", epoch)
                 if epoch % 10 == 0:
                     saver.save(sess, os.path.join(self._checkpoint_dir, "cyclegan"), global_step=epoch)
                     self.save_images(sess, epoch, self._output_dir)
@@ -387,7 +376,7 @@ class CycleGAN:
             threads = tf.train.start_queue_runners(coord=coord)
 
             self._num_imgs_to_save = cyclegan_datasets.DATASET_TO_SIZES[
-                self._dataset_name]
+                self.dataset_name]
             self.save_images(sess, epoch, os.path.join(self._output_dir, 'epoch_%d' % epoch))
 
             coord.request_stop()
@@ -395,8 +384,8 @@ class CycleGAN:
 
     def test(self):
         # TODO: избавиться от инференса второй части сети (B -> A)
-        self.inputs, self.fname, _ = data_loader.load_data(self._dataset_name, self._size_before_crop, self.config,
-                                                           False, False)
+        self.inputs, self.fname, _ = data_loader._prepare(self.dataset_name, self.size, self.config,
+                                                          False, False)
         self.model_setup()
         saver = tf.train.Saver()
 

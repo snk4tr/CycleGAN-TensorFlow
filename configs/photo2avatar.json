@@ -4,10 +4,12 @@
   "base_lr":0.0002,
   "max_step": 200,
   "network_version": "pytorch",
-  "dataset_name": "photo2avatar",
+  "dataset_name": "photo2avatar_test",
   "path_domainA": "/home/Sergey/data/faces_feifaces_aug",
   "path_domainB": "/home/Sergey/data/avatars/7_5k_male",
-  "do_flipping": 1,
+  "augment": 0,
+  "shuffle": 1,
+  "img_size": 286,
   "_LAMBDA_A": 10,
   "_LAMBDA_B": 10
 }

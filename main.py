@@ -39,11 +39,9 @@ def main(to_train, log_dir, config_filename, skip, epoch):
     a string containing range description in format "left, right" or "left, right, step".
 
     """
-    if not os.path.isdir(log_dir):
-        os.makedirs(log_dir)
-
-    with open(config_filename) as config_file:
-        config = json.load(config_file)
+    os.makedirs(log_dir, exist_ok=True)
+    with open(config_filename, 'r') as f:
+        config = json.load(f)
 
     lambda_a = float(config.get('_LAMBDA_A', 10.0))
     lambda_b = float(config.get('_LAMBDA_B', 10.0))
@@ -54,11 +52,10 @@ def main(to_train, log_dir, config_filename, skip, epoch):
     max_step = int(config.get('max_step', 200))
     network_version = str(config['network_version'])
     dataset_name = str(config['dataset_name'])
-    do_flipping = bool(config['do_flipping'])
 
     cyclegan_model = CycleGAN(pool_size, lambda_a, lambda_b, log_dir,
                               to_restore, base_lr, max_step, network_version,
-                              dataset_name, do_flipping, skip, epoch, config)
+                              dataset_name, skip, epoch, config)
 
     if to_train:
         cyclegan_model.train()
