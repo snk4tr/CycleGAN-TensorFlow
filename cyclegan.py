@@ -64,7 +64,7 @@ class CycleGAN:
         # self.input_a = self.inputs['images_i']
         # self.input_b = self.inputs['images_j']
 
-        self.input_a, self.input_b = data_loader.get_data(self.config)
+        self.input_a, self.input_b = data_loader.get_batch(self.config)
 
         self.fake_pool_A = tf.placeholder(
             tf.float32, [
