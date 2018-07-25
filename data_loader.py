@@ -7,20 +7,24 @@ import model
 def get_batch(config: dict):
     dataset = _construct_dataset(config)
     dataset = _prepare(config, dataset)
-    dataset = dataset.repeat()
+    dataset = dataset.repeat(4)
+    dataset = dataset.prefetch(buffer_size=config['buffer_size'])
     iterator = dataset.make_one_shot_iterator()
     return iterator.get_next()
 
 
 def _construct_dataset(config: dict) -> tf.data.Dataset:
-    imgs_i, imgs_j = _get_file_names(config['path_domainA'], config), _get_file_names(config['path_domainB'], config)
+    n_imgs = config['n_imgs']
+    imgs_i, imgs_j = _get_file_names(config['path_domainA'], n_imgs), _get_file_names(config['path_domainB'], n_imgs)
     dataset = tf.data.Dataset.from_tensor_slices((imgs_i, imgs_j))
+    if config['shuffle']:
+        dataset = dataset.shuffle(buffer_size=config['n_imgs'], seed=42)
     dataset = dataset.map(_load)
     return dataset
 
 
-def _get_file_names(path: str, config: dict) -> tf.constant:
-    return tf.constant(list(glob.glob(os.path.join(path, '*.*')))[:config['buffer_size']])
+def _get_file_names(path: str, n_imgs: int) -> tf.constant:
+    return tf.constant(list(glob.glob(os.path.join(path, '*.*')))[:n_imgs])
 
 
 def _load(img_i_path: str, img_j_path: str) -> (tf.Tensor, tf.Tensor):
@@ -36,8 +40,6 @@ def _prepare(config: dict, dataset: tf.data.Dataset) -> tf.data.Dataset:
     if config['augment']:
         dataset = dataset.map(_do_augment, num_parallel_calls=config['n_threads'])
     dataset = dataset.map(_normalize, num_parallel_calls=config['n_threads'])
-    if config['shuffle']:
-        dataset = dataset.shuffle(buffer_size=config['buffer_size'], seed=42)
     return dataset
 
 

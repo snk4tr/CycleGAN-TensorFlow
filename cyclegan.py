@@ -16,8 +16,7 @@ slim = tf.contrib.slim
 class CycleGAN:
     def __init__(self, pool_size, lambda_a,
                  lambda_b, output_root_dir, to_restore,
-                 base_lr, max_step, network_version,
-                 dataset_name, skip, epoch, config):
+                 base_lr, max_step, network_version, skip, epoch, config):
 
         self._pool_size = pool_size
         self._lambda_a = lambda_a
@@ -29,7 +28,6 @@ class CycleGAN:
         self._base_lr = base_lr
         self._max_step = max_step
         self._network_version = network_version
-        self.dataset_name = dataset_name
         self._checkpoint_dir = os.path.join(self._output_dir, 'checkpoints')
         self._skip = skip
         self._epoch_description = epoch
@@ -247,7 +245,7 @@ class CycleGAN:
                 tf.local_variables_initializer())
         saver = tf.train.Saver(max_to_keep=21)
 
-        max_images = cyclegan_datasets.DATASET_TO_SIZES[self.dataset_name]
+        max_images = self.config['n_imgs']
         tf_config = tf.ConfigProto(
             # gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5),
             device_count={'GPU': 1}
@@ -270,16 +268,16 @@ class CycleGAN:
             # Training Loop
             start_step = sess.run(tf.train.get_global_step())
             print('Starting at epoch =', start_step)
-            pr_bar = tqdm(range(start_step, self._max_step),
+            pr_bar = tqdm(range(start_step, self.config['n_epochs']),
                           bar_format='{desc}|{bar}|{percentage:3.0f}% ETA: {remaining}')
             for epoch in pr_bar:
-                pr_bar.set_description('Epoch %d/%d' % (epoch, self._max_step))
+                pr_bar.set_description('Epoch %d/%d' % (epoch, self.config['n_epochs']))
                 if epoch % 10 == 0:
                     saver.save(sess, os.path.join(self._checkpoint_dir, "cyclegan"), global_step=epoch)
                     self.save_images(sess, epoch, self._output_dir)
 
                 # Dealing with the learning rate as per the epoch number
-                if epoch >= 200:
+                if epoch >= self.config['n_epochs']:
                     break
                 elif epoch < 100:
                     curr_lr = self._base_lr
@@ -378,8 +376,7 @@ class CycleGAN:
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(coord=coord)
 
-            self._num_imgs_to_save = cyclegan_datasets.DATASET_TO_SIZES[
-                self.dataset_name]
+            self._num_imgs_to_save = cyclegan_datasets.DATASET_TO_SIZES[self.config['n_imgs']]
             self.save_images(sess, epoch, os.path.join(self._output_dir, 'epoch_%d' % epoch))
 
             coord.request_stop()

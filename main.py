@@ -1,4 +1,6 @@
 import json
+import time
+
 import click
 import os
 
@@ -51,11 +53,10 @@ def main(to_train, log_dir, config_filename, skip, epoch):
     base_lr = float(config.get('base_lr', 2e-4))
     max_step = int(config.get('max_step', 200))
     network_version = str(config['network_version'])
-    dataset_name = str(config['dataset_name'])
 
     cyclegan_model = CycleGAN(pool_size, lambda_a, lambda_b, log_dir,
                               to_restore, base_lr, max_step, network_version,
-                              dataset_name, skip, epoch, config)
+                              skip, epoch, config)
 
     if to_train:
         cyclegan_model.train()

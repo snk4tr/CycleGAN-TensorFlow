@@ -4,7 +4,7 @@
   "base_lr":0.0002,
   "max_step": 200,
   "network_version": "pytorch",
-  "dataset_name": "photo2avatar_test",
+  "dataset_name": "photo2avatar",
   "path_domainA": "/home/Sergey/data/faces_feifaces_aug",
   "path_domainB": "/home/Sergey/data/avatars/7_5k_male",
   "augment": 0,
@@ -13,5 +13,7 @@
   "_LAMBDA_A": 10,
   "_LAMBDA_B": 10,
   "n_threads": 4,
-  "buffer_size": 7500
+  "n_imgs": 100,
+  "n_epochs": 1,
+  "buffer_size": 100
 }
