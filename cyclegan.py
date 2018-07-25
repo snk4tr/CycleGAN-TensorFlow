@@ -62,10 +62,20 @@ class CycleGAN:
         # self.input_a = self.inputs['images_i']
         # self.input_b = self.inputs['images_j']
 
-
-        self.inputs = data_loader.get_batch(self.config)
-        self.input_a = self.inputs[0]
-        self.input_b = self.inputs[1]
+        self.input_a = tf.placeholder(
+            tf.float32, [
+                1,
+                model.IMG_WIDTH,
+                model.IMG_HEIGHT,
+                model.IMG_CHANNELS
+            ], name="input_A")
+        self.input_b = tf.placeholder(
+            tf.float32, [
+                1,
+                model.IMG_WIDTH,
+                model.IMG_HEIGHT,
+                model.IMG_CHANNELS
+            ], name="input_B")
 
         self.fake_pool_A = tf.placeholder(
             tf.float32, [
@@ -89,8 +99,8 @@ class CycleGAN:
         self.learning_rate = tf.placeholder(tf.float32, shape=[], name="lr")
 
         inputs = {
-            'images_a': tf.expand_dims(self.input_a, 0),
-            'images_b': tf.expand_dims(self.input_b, 0),
+            'images_a': self.input_a,
+            'images_b': self.input_b,
             'fake_pool_a': self.fake_pool_A,
             'fake_pool_b': self.fake_pool_B,
         }
@@ -192,8 +202,6 @@ class CycleGAN:
             header += '</td></tr></table>'
             v_html.write(header)
 
-            # images
-            # res = set()
             for i in range(0, self._num_imgs_to_save):
                 inputs = sess.run(self.inputs)
 
@@ -203,8 +211,8 @@ class CycleGAN:
                     self.cycle_images_a,
                     self.cycle_images_b
                 ], feed_dict={
-                    self.input_a: inputs[0],
-                    self.input_b: inputs[1]
+                    self.input_a: np.expand_dims(inputs[0], 0),
+                    self.input_b: np.expand_dims(inputs[1], 0)
                 })
 
                 tensors = [inputs[0], inputs[1], fake_B_temp, fake_A_temp, cyc_A_temp, cyc_B_temp]
@@ -238,6 +246,8 @@ class CycleGAN:
                 return fake
 
     def train(self):
+        self.inputs = data_loader.get_batch(self.config)
+
         self.model_setup()
         self.compute_losses()
 
@@ -286,12 +296,20 @@ class CycleGAN:
                               self._base_lr * (epoch - 100) / 100
 
                 for i in range(0, max_images):
+                    inputs = sess.run(self.inputs)
+                    in_a = np.expand_dims(inputs[0], 0)
+                    in_b = np.expand_dims(inputs[1], 0)
+
                     # Optimizing the G_A network
                     _, fake_B_temp, summary_str = sess.run(
                         [self.g_A_trainer,
                          self.fake_images_b,
                          self.g_A_loss_summ],
                         feed_dict={
+                            self.input_a:
+                                in_a,
+                            self.input_b:
+                                in_b,
                             self.learning_rate: curr_lr
                         }
                     )
@@ -304,8 +322,11 @@ class CycleGAN:
                     _, summary_str = sess.run(
                         [self.d_B_trainer, self.d_B_loss_summ],
                         feed_dict={
+                            self.input_a: in_a,
+                            self.input_b: in_b,
                             self.learning_rate: curr_lr,
                             self.fake_pool_B: fake_B_temp1
+
                         }
                     )
                     writer.add_summary(summary_str, epoch * max_images + i)
@@ -316,6 +337,8 @@ class CycleGAN:
                          self.fake_images_a,
                          self.g_B_loss_summ],
                         feed_dict={
+                            self.input_a: in_a,
+                            self.input_b: in_b,
                             self.learning_rate: curr_lr
                         }
                     )
@@ -328,6 +351,8 @@ class CycleGAN:
                     _, summary_str = sess.run(
                         [self.d_A_trainer, self.d_A_loss_summ],
                         feed_dict={
+                            self.input_a: in_a,
+                            self.input_b: in_b,
                             self.learning_rate: curr_lr,
                             self.fake_pool_A: fake_A_temp1
                         }

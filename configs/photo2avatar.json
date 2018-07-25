@@ -13,7 +13,7 @@
   "_LAMBDA_A": 10,
   "_LAMBDA_B": 10,
   "n_threads": 4,
-  "n_imgs": 100,
-  "n_epochs": 1,
+  "n_imgs": 7500,
+  "n_epochs": 200,
   "buffer_size": 100
 }

@@ -7,7 +7,7 @@ import model
 def get_batch(config: dict):
     dataset = _construct_dataset(config)
     dataset = _prepare(config, dataset)
-    dataset = dataset.repeat(4)
+    dataset = dataset.repeat()
     dataset = dataset.prefetch(buffer_size=config['buffer_size'])
     iterator = dataset.make_one_shot_iterator()
     return iterator.get_next()
