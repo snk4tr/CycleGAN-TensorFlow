@@ -64,7 +64,10 @@ class CycleGAN:
         # self.input_a = self.inputs['images_i']
         # self.input_b = self.inputs['images_j']
 
-        self.input_a, self.input_b = data_loader.get_batch(self.config)
+
+        self.inputs = data_loader.get_batch(self.config)
+        self.input_a = self.inputs[0]
+        self.input_b = self.inputs[1]
 
         self.fake_pool_A = tf.placeholder(
             tf.float32, [
@@ -88,8 +91,8 @@ class CycleGAN:
         self.learning_rate = tf.placeholder(tf.float32, shape=[], name="lr")
 
         inputs = {
-            'images_a': self.input_a,
-            'images_b': self.input_b,
+            'images_a': tf.expand_dims(self.input_a, 0),
+            'images_b': tf.expand_dims(self.input_b, 0),
             'fake_pool_a': self.fake_pool_A,
             'fake_pool_b': self.fake_pool_B,
         }
@@ -202,11 +205,11 @@ class CycleGAN:
                     self.cycle_images_a,
                     self.cycle_images_b
                 ], feed_dict={
-                    self.input_a: inputs['images_i'],
-                    self.input_b: inputs['images_j']
+                    self.input_a: inputs[0],
+                    self.input_b: inputs[1]
                 })
 
-                tensors = [inputs['images_i'], inputs['images_j'], fake_B_temp, fake_A_temp, cyc_A_temp, cyc_B_temp]
+                tensors = [inputs[0], inputs[1], fake_B_temp, fake_A_temp, cyc_A_temp, cyc_B_temp]
 
                 for name, tensor in zip(names, tensors):
                     image_name = name + str(epoch) + "_" + str(i) + ".jpg"
@@ -251,7 +254,7 @@ class CycleGAN:
         )
 
         with tf.Session(config=tf_config) as sess:
-            sess = tf_debug.LocalCLIDebugWrapperSession(sess)
+            # sess = tf_debug.LocalCLIDebugWrapperSession(sess)
             sess.run(init)
 
             if self._to_restore:

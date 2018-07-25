@@ -9,7 +9,9 @@
   "path_domainB": "/home/Sergey/data/avatars/7_5k_male",
   "augment": 0,
   "shuffle": 1,
-  "img_size": 286,
+  "img_size": 256,
   "_LAMBDA_A": 10,
-  "_LAMBDA_B": 10
+  "_LAMBDA_B": 10,
+  "n_threads": 4,
+  "buffer_size": 7500
 }
