@@ -78,5 +78,4 @@ def color_loss(input_a: tf.Tensor, input_b: tf.Tensor) -> tf.Tensor:
     target_width = tf.to_int32(tf.multiply(tf.to_float(tf.shape(input_a)[2]), 0.4))
     crop_a = tf.image.crop_to_bounding_box(input_a, offset_height, offset_width, target_height, target_width)
     crop_b = tf.image.crop_to_bounding_box(input_b, offset_height, offset_width, target_height, target_width)
-    # return tf.sqrt(tf.reduce_sum(tf.square(tf.subtract(crop_a, crop_b)))), crop_a, crop_b
     return tf.losses.mean_squared_error(crop_a, crop_b)

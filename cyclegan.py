@@ -138,22 +138,14 @@ class CycleGAN:
                 real_images=self.input_b, generated_images=self.cycle_images_b,
             )
 
-        # lsgan_loss_a = losses.lsgan_loss_generator(self.prob_fake_a_is_real) + just_brightness_loss
         lsgan_loss_a = losses.lsgan_loss_generator(self.prob_fake_a_is_real)
         lsgan_loss_b = losses.lsgan_loss_generator(self.prob_fake_b_is_real)
 
-        # color_loss_a, self.crop_a_1, self.crop_b_1 = losses.color_loss(self.input_a, self.fake_images_A)
-        # color_loss_b, self.crop_a_2, self.crop_b_2 = losses.color_loss(self.input_b, self.fake_images_B)
-        # color_loss_a = losses.color_loss(self.input_a, self.fake_images_A)
-        # color_loss_b = losses.color_loss(self.input_b, self.fake_images_B)
+        color_loss_a = losses.color_loss(self.input_a, self.fake_images_a)
+        color_loss_b = losses.color_loss(self.input_b, self.fake_images_b)
 
-        # g_loss_A = cycle_consistency_loss_a + cycle_consistency_loss_b + lsgan_loss_b + color_loss_a
-        # g_loss_B = cycle_consistency_loss_b + cycle_consistency_loss_a + lsgan_loss_a + color_loss_b
-
-        # i = tf.Print(lsgan_loss_a, [lsgan_loss_a], 'INPUT_A SHAPE {} and plain shape {}'.format(tf.shape(self.fake_images_A), self.fake_images_A.shape))
-
-        g_loss_A = cycle_consistency_loss_a + cycle_consistency_loss_b + lsgan_loss_b
-        g_loss_B = cycle_consistency_loss_b + cycle_consistency_loss_a + lsgan_loss_a
+        g_loss_A = cycle_consistency_loss_a + cycle_consistency_loss_b + lsgan_loss_b + color_loss_a
+        g_loss_B = cycle_consistency_loss_b + cycle_consistency_loss_a + lsgan_loss_a + color_loss_b
 
         d_loss_A = losses.lsgan_loss_discriminator(
             prob_real_is_real=self.prob_real_a_is_real,
