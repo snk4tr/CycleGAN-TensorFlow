@@ -23,7 +23,6 @@ class CycleGAN:
         self._lambda_b = lambda_b
         self._output_dir = output_root_dir
         self._images_dir = os.path.join(self._output_dir, 'imgs')
-        self._num_imgs_to_save = 8
         self._to_restore = to_restore
         self._base_lr = base_lr
         self._max_step = max_step
@@ -202,7 +201,7 @@ class CycleGAN:
             header += '</td></tr></table>'
             v_html.write(header)
 
-            for i in range(0, self._num_imgs_to_save):
+            for i in range(self.config['n_imgs_to_save']):
                 inputs = sess.run(self.inputs)
 
                 fake_A_temp, fake_B_temp, cyc_A_temp, cyc_B_temp = sess.run([
@@ -257,7 +256,7 @@ class CycleGAN:
 
         max_images = self.config['n_imgs']
         tf_config = tf.ConfigProto(
-            # gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5),
+            gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.5),
             device_count={'GPU': 1}
         )
 

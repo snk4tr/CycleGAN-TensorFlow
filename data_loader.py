@@ -48,8 +48,9 @@ def _do_resize(img_i: tf.Tensor, img_j: tf.Tensor, size: int, ) -> (tf.Tensor, t
 
 
 def _do_augment(img_i: tf.Tensor, img_j: tf.Tensor) -> (tf.constant, tf.constant):
-    img_i = tf.image.random_flip_left_right(img_i)
+    img_i, img_j = tf.image.random_flip_left_right(img_i), tf.image.random_flip_left_right(img_j)
     img_i = tf.random_crop(img_i, [model.IMG_HEIGHT, model.IMG_WIDTH, 3])
+    img_j = tf.random_crop(img_j, [model.IMG_HEIGHT, model.IMG_WIDTH, 3])
     return img_i, img_j
 
 

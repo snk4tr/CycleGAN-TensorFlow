@@ -7,13 +7,14 @@
   "dataset_name": "photo2avatar",
   "path_domainA": "/home/Sergey/data/faces_feifaces_aug",
   "path_domainB": "/home/Sergey/data/avatars/7_5k_male",
-  "augment": 0,
+  "augment": 1,
   "shuffle": 1,
-  "img_size": 256,
+  "img_size": 286,
   "_LAMBDA_A": 10,
   "_LAMBDA_B": 10,
   "n_threads": 4,
   "n_imgs": 7500,
+  "n_imgs_to_save": 20,
   "n_epochs": 200,
   "buffer_size": 100
 }
