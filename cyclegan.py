@@ -9,7 +9,6 @@ from scipy.misc import imsave
 from tqdm import tqdm
 from tensorflow.python import debug as tf_debug
 
-
 slim = tf.contrib.slim
 
 
@@ -29,7 +28,7 @@ class CycleGAN:
         self._network_version = network_version
         self._checkpoint_dir = os.path.join(self._output_dir, 'checkpoints')
         self._skip = skip
-        self._epoch_description = epoch
+        self._epoch = epoch
 
         self.fake_images_A = np.zeros(
             (self._pool_size, 1, model.IMG_HEIGHT, model.IMG_WIDTH,
@@ -378,8 +377,6 @@ class CycleGAN:
             writer.add_graph(sess.graph)
 
     def _test_single(self, saver, epoch=None):
-        """Test Function."""
-
         chkpt_fname = None
         if type(epoch) == int:
             chkpt_fname = os.path.join(self._checkpoint_dir, 'cyclegan-%d' % epoch)
@@ -400,32 +397,27 @@ class CycleGAN:
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(coord=coord)
 
-            self._num_imgs_to_save = cyclegan_datasets.DATASET_TO_SIZES[self.config['n_imgs']]
             self.save_images(sess, epoch, os.path.join(self._output_dir, 'epoch_%d' % epoch))
 
             coord.request_stop()
             coord.join(threads)
 
     def test(self):
-        # TODO: избавиться от инференса второй части сети (B -> A)
-        self.inputs, self.fname, _ = data_loader._prepare(self.dataset_name, self.size, self.config,
-                                                          False, False)
+        self.inputs = data_loader.get_batch(self.config)
         self.model_setup()
         saver = tf.train.Saver()
 
-        print("Testing the results")
-        if self._epoch_description is None:
+        print("---TESTING THE RESULTS---")
+        if self._epoch is None:
             self._test_single(saver)
-        elif self._epoch_description.isdigit():
-            self._test_single(saver, epoch=int(self._epoch_description))
-        elif ',' in self._epoch_description:
-            range_str = list(map(int, str(self._epoch_description).split(',')))
+        elif self._epoch.isdigit():
+            self._test_single(saver, epoch=int(self._epoch))
+        elif ',' in self._epoch:
+            range_str = list(map(int, str(self._epoch).split(',')))
             first_epoch, last_epoch = range_str[:2]
             step = range_str[2] if len(range_str) == 3 else 1
             self._output_dir = os.path.join(self._output_dir, 'test')
             for e in range(first_epoch, last_epoch, step):
-                # TODO: assert if there is no such epoch
                 self._test_single(saver, e)
         else:
-            print('Stop testing. Unexpected epoch description parameter.')
-
+            raise AttributeError('Stop testing. Unexpected epoch description parameter.')
