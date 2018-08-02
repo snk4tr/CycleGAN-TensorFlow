@@ -5,8 +5,7 @@ export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 
 python main.py \
---to_train 0 \
---log_dir ./output/10 \
+--to_train 1 \
+--log_dir /data/avatars/homiak_exp/8 \
 --config_filename ./configs/photo2avatar.json \
---skip True \
---epoch "10, 20, 10"
+--skip True

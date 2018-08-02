@@ -72,10 +72,18 @@ def lsgan_loss_discriminator(prob_real_is_real, prob_fake_is_real):
 
 
 def color_loss(input_a: tf.Tensor, input_b: tf.Tensor) -> tf.Tensor:
-    offset_height = tf.to_int32(tf.multiply(tf.to_float(tf.shape(input_a)[1]), 0.85))
-    offset_width = tf.to_int32(tf.multiply(tf.to_float(tf.shape(input_a)[2]), 0.3))
-    target_height = tf.to_int32(tf.multiply(tf.to_float(tf.shape(input_a)[1]), 0.15))
-    target_width = tf.to_int32(tf.multiply(tf.to_float(tf.shape(input_a)[2]), 0.4))
+    hair_loss = _part_of_color_loss(input_a, input_b, 0.1, 0.35, 0.2, 0.3)
+    shirt_loss = _part_of_color_loss(input_a, input_b, 0.85, 0.3, 0.15, 0.4)
+    clr_loss = 2 * hair_loss + shirt_loss
+    return clr_loss
+
+
+def _part_of_color_loss(input_a, input_b, off_height, off_width, tar_height, tar_width):
+    x_shape, y_shape = tf.shape(input_a)[1], tf.shape(input_a)[2]
+    offset_height = tf.to_int32(tf.multiply(tf.to_float(x_shape), off_height))
+    offset_width = tf.to_int32(tf.multiply(tf.to_float(y_shape), off_width))
+    target_height = tf.to_int32(tf.multiply(tf.to_float(x_shape), tar_height))
+    target_width = tf.to_int32(tf.multiply(tf.to_float(y_shape), tar_width))
     crop_a = tf.image.crop_to_bounding_box(input_a, offset_height, offset_width, target_height, target_width)
     crop_b = tf.image.crop_to_bounding_box(input_b, offset_height, offset_width, target_height, target_width)
     return tf.losses.mean_squared_error(crop_a, crop_b)

@@ -278,16 +278,16 @@ class CycleGAN:
             # Training Loop
             start_step = sess.run(tf.train.get_global_step())
             print('Starting at epoch =', start_step)
-            pr_bar = tqdm(range(start_step, self.config['n_epochs']),
+            pr_bar = tqdm(range(start_step, self._max_step),
                           bar_format='{desc}|{bar}|{percentage:3.0f}% ETA: {remaining}')
             for epoch in pr_bar:
-                pr_bar.set_description('Epoch %d/%d' % (epoch, self.config['n_epochs']))
+                pr_bar.set_description('Epoch %d/%d' % (epoch, self._max_step))
                 if epoch % 10 == 0:
                     saver.save(sess, os.path.join(self._checkpoint_dir, "cyclegan"), global_step=epoch)
                     self.save_images(sess, epoch, self._output_dir)
 
                 # Dealing with the learning rate as per the epoch number
-                if epoch >= self.config['n_epochs']:
+                if epoch >= self._max_step:
                     break
                 elif epoch < 100:
                     curr_lr = self._base_lr
