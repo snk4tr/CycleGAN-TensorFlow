@@ -5,7 +5,7 @@ each domain."""
 DATASET_TO_SIZES = {
     'horse2zebra_train': 1000,
     'horse2zebra_test': 140,
-    'photo2avatar': 7500,
+    'photo2avatar': 890,
     'photo2avatar_celeb': 600,
     'photo2avatar_test': 26,
 }

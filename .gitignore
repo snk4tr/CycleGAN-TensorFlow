@@ -78,6 +78,7 @@ celerybeat-schedule
 
 # SageMath parsed files
 *.sage.py
+*.ipynb
 
 # dotenv
 .env
@@ -102,3 +103,5 @@ ENV/
 input/
 .DS_Store
 .idea
+output
+!*/output

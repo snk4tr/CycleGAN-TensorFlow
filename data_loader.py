@@ -1,101 +1,58 @@
 import os
-
+import glob
 import tensorflow as tf
-
-import cyclegan_datasets
 import model
-from glob import glob
 
 
-def _load_good(path):
-    filename_queue = tf.train.string_input_producer(list(glob(os.path.join(path, "*.*"))))
-
-    image_reader = tf.WholeFileReader()
-    fname, image_file = image_reader.read(filename_queue)
-    img = tf.image.decode_jpeg(image_file)
-    return img, fname
-
-
-# DEPRECATED
-def _load_samples(csv_name, image_type):
-    filename_queue = tf.train.string_input_producer(
-        [csv_name])
-
-    reader = tf.TextLineReader()
-    _, csv_filename = reader.read(filename_queue)
-
-    record_defaults = [tf.constant([], dtype=tf.string),
-                       tf.constant([], dtype=tf.string)]
-
-    filename_i, filename_j = tf.decode_csv(
-        csv_filename, record_defaults=record_defaults)
-
-    file_contents_i = tf.read_file(filename_i)
-    file_contents_j = tf.read_file(filename_j)
-
-    if 'jpg' in image_type or 'jp*g' in image_type:
-        image_decoded_A = tf.image.decode_jpeg(
-            file_contents_i, channels=model.IMG_CHANNELS)
-        image_decoded_B = tf.image.decode_jpeg(
-            file_contents_j, channels=model.IMG_CHANNELS)
-    elif image_type == '.png':
-        image_decoded_A = tf.image.decode_png(
-            file_contents_i, channels=model.IMG_CHANNELS, dtype=tf.uint8)
-        image_decoded_B = tf.image.decode_png(
-            file_contents_j, channels=model.IMG_CHANNELS, dtype=tf.uint8)
-
-    return image_decoded_A, image_decoded_B, filename_i
+def get_batch(config: dict):
+    dataset = _construct_dataset(config)
+    dataset = _prepare(config, dataset)
+    dataset = dataset.repeat()
+    dataset = dataset.prefetch(buffer_size=config['buffer_size'])
+    iterator = dataset.make_one_shot_iterator()
+    return iterator.get_next()
 
 
-def load_data(dataset_name, image_size_before_crop, config,
-              do_shuffle=True, do_flipping=False):
-    """
+def _construct_dataset(config: dict) -> tf.data.Dataset:
+    n_imgs = config['n_imgs']
+    imgs_i, imgs_j = _get_file_names(config['path_domainA'], n_imgs), _get_file_names(config['path_domainB'], n_imgs)
+    dataset = tf.data.Dataset.from_tensor_slices((imgs_i, imgs_j))
+    if config['shuffle']:
+        dataset = dataset.shuffle(buffer_size=config['n_imgs'], seed=42)
+    dataset = dataset.map(_load)
+    return dataset
 
-    :param dataset_name: The name of the dataset.
-    :param image_size_before_crop: Resize to this size before random cropping.
-    :param do_shuffle: Shuffle switch.
-    :param do_flipping: Flip switch.
-    :return:
-    """
-    if dataset_name not in cyclegan_datasets.DATASET_TO_SIZES:
-        raise ValueError('split name %s was not recognized.'
-                         % dataset_name)
 
-    csv_name = cyclegan_datasets.PATH_TO_CSV[dataset_name]
+def _get_file_names(path: str, n_imgs: int) -> tf.constant:
+    return tf.constant(list(glob.glob(os.path.join(path, '*.*')))[:n_imgs])
 
-    # image_i, image_j, files  = _load_samples(
-    #     csv_name, cyclegan_datasets.DATASET_TO_IMAGETYPE[dataset_name])
-    image_i, fnameA = _load_good(config['path_domainA'])
-    image_j, fnameB = _load_good(config['path_domainB'])
-    inputs = {
-        'image_i': image_i,
-        'image_j': image_j
-    }
 
-    # Preprocessing:
-    inputs['image_i'] = tf.image.resize_images(
-        inputs['image_i'], [image_size_before_crop, image_size_before_crop])
-    inputs['image_j'] = tf.image.resize_images(
-        inputs['image_j'], [image_size_before_crop, image_size_before_crop])
+def _load(img_i_path: str, img_j_path: str) -> (tf.Tensor, tf.Tensor):
+    img_i_file, img_j_file = tf.read_file(img_i_path), tf.read_file(img_j_path)
+    img_i_decoded = tf.image.decode_image(img_i_file, channels=3)
+    img_j_decoded = tf.image.decode_image(img_j_file, channels=3)
+    img_i_decoded.set_shape([None, None, 3]), img_j_decoded.set_shape([None, None, 3])
+    return img_i_decoded, img_j_decoded
 
-    if do_flipping is True:
-        inputs['image_i'] = tf.image.random_flip_left_right(inputs['image_i'])
-        inputs['image_j'] = tf.image.random_flip_left_right(inputs['image_j'])
 
-    inputs['image_i'] = tf.random_crop(
-        inputs['image_i'], [model.IMG_HEIGHT, model.IMG_WIDTH, 3])
-    inputs['image_j'] = tf.random_crop(
-        inputs['image_j'], [model.IMG_HEIGHT, model.IMG_WIDTH, 3])
+def _prepare(config: dict, dataset: tf.data.Dataset) -> tf.data.Dataset:
+    dataset = dataset.map(lambda x, y: _do_resize(x, y, config['img_size']), num_parallel_calls=config['n_threads'])
+    if config['augment']:
+        dataset = dataset.map(_do_augment, num_parallel_calls=config['n_threads'])
+    dataset = dataset.map(_normalize, num_parallel_calls=config['n_threads'])
+    return dataset
 
-    inputs['image_i'] = tf.subtract(tf.div(inputs['image_i'], 127.5), 1)
-    inputs['image_j'] = tf.subtract(tf.div(inputs['image_j'], 127.5), 1)
 
-    # Batch
-    if do_shuffle is True:
-        inputs['images_i'], inputs['images_j'] = tf.train.shuffle_batch(
-            [inputs['image_i'], inputs['image_j']], 1, 5000, 100)
-    else:
-        inputs['images_i'], inputs['images_j'] = tf.train.batch(
-            [inputs['image_i'], inputs['image_j']], 1)
+def _do_resize(img_i: tf.Tensor, img_j: tf.Tensor, size: int, ) -> (tf.Tensor, tf.Tensor):
+    return tf.image.resize_images(img_i, [size, size]), tf.image.resize_images(img_j, [size, size])
 
-    return inputs, fnameA, fnameB
+
+def _do_augment(img_i: tf.Tensor, img_j: tf.Tensor) -> (tf.constant, tf.constant):
+    img_i, img_j = tf.image.random_flip_left_right(img_i), tf.image.random_flip_left_right(img_j)
+    img_i = tf.random_crop(img_i, [model.IMG_HEIGHT, model.IMG_WIDTH, 3])
+    img_j = tf.random_crop(img_j, [model.IMG_HEIGHT, model.IMG_WIDTH, 3])
+    return img_i, img_j
+
+
+def _normalize(img_i: tf.Tensor, img_j: tf.Tensor) -> (tf.Tensor, tf.Tensor):
+    return tf.subtract(tf.div(img_i, 127), 1), tf.subtract(tf.div(img_j, 127), 1)
