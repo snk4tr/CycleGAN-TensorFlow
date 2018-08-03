@@ -53,13 +53,6 @@ class CycleGAN:
         self.fake_A/self.fake_B to corresponding generator.
         This is use to calculate cyclic loss
         """
-        # self.inputs = data_loader.prepare(
-        #     self.dataset_name, self.size, self.config,
-        #     True, self._do_flipping)
-        #
-        # self.input_a = self.inputs['images_i']
-        # self.input_b = self.inputs['images_j']
-
         self.input_a = tf.placeholder(
             tf.float32, [
                 1,
@@ -170,9 +163,6 @@ class CycleGAN:
         self.g_A_trainer = optimizer.minimize(g_loss_A, var_list=g_A_vars)
         self.g_B_trainer = optimizer.minimize(g_loss_B, var_list=g_B_vars)
 
-        # for var in self.model_vars:
-        #     print(var.name)
-
         # Summary variables for tensorboard
         self.g_A_loss_summ = tf.summary.scalar("g_A_loss", g_loss_A)
         self.g_B_loss_summ = tf.summary.scalar("g_B_loss", g_loss_B)
@@ -262,7 +252,6 @@ class CycleGAN:
         )
 
         with tf.Session(config=tf_config) as sess:
-            # sess = tf_debug.LocalCLIDebugWrapperSession(sess)
             sess.run(init)
 
             if self._to_restore:
@@ -423,3 +412,4 @@ class CycleGAN:
                 self._test_single(saver, e)
         else:
             raise AttributeError('Stop testing. Unexpected epoch description parameter.')
+        print("---TESTING FINISHED---")

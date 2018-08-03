@@ -54,8 +54,7 @@ def main(to_train, log_dir, config_filename, skip, epoch):
     max_step = int(config.get('max_step', 200))
     network_version = str(config['network_version'])
 
-    cyclegan_model = CycleGAN(pool_size, lambda_a, lambda_b, log_dir,
-                              to_restore, base_lr, max_step, network_version,
+    cyclegan_model = CycleGAN(pool_size, lambda_a, lambda_b, log_dir, to_restore, base_lr, max_step, network_version,
                               skip, epoch, config)
 
     if to_train:
